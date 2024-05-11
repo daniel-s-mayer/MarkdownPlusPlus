@@ -1,26 +1,46 @@
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 public class SectionParser implements Parser {
+    private ParserUtilities parserUtilities;
+    public SectionParser() {
+        this.parserUtilities = new ParserUtilities();
+    }
+
     @Override
     public String parseChunk(ParsedMDPP parsedMDPP, String[] lines) throws SyntaxException {
         String chunkHTML = "";
         chunkHTML = chunkHTML.concat(parseSectionStart(lines[0]));
         int numLines = lines.length;
         for (int i = 1; i < numLines - 1; i++) {
-            // Process a section within the MD++.
+            if (lines[i].length() < 1) {
+                chunkHTML = chunkHTML.concat("<br>\n");
+                continue;
+            }
+            // Process a section within the current section.
             if (lines[i].charAt(0) == '+') {
-                int stopPoint = getStopPoint(lines, i, numLines, '+', '>');
+                int stopPoint = parserUtilities.getStopPoint(lines, i, numLines, '+', '>');
                 chunkHTML = chunkHTML.concat(new SectionParser().parseChunk(parsedMDPP, Arrays.copyOfRange(lines, i, stopPoint + 1)));
                 i = stopPoint;
-            } else if (lines[i].charAt(0) == '&') {
+            }
+            // Process a base-level control sequence within the current section.
+            else if (lines[i].charAt(0) == '&') {
                 new BaseControlSequenceHandler().parseLine(lines[i], parsedMDPP);
                 continue;
-            } else if (lines[i].charAt(0) == '=') {
-                int stopPoint = getStopPoint(lines, i, numLines, '=', '?');
+            }
+            // Process a list within the current section.
+            else if (lines[i].charAt(0) == '=') {
+                int stopPoint = parserUtilities.getStopPoint(lines, i, numLines, '=', '?');
                 chunkHTML = chunkHTML.concat(new ListParser().parseChunk(parsedMDPP, Arrays.copyOfRange(lines, i, stopPoint + 1)));
                 i = stopPoint;
-            } else {
-                chunkHTML = chunkHTML.concat(parseGeneralLine(lines[i]));
+            }
+            // Process a header within the current section.
+            else if (lines[i].charAt(0) == '#') {
+                chunkHTML = chunkHTML.concat(parserUtilities.parseHeaderLine(lines[i]));
+            }
+            else {
+                chunkHTML = chunkHTML.concat(parserUtilities.parseGeneralLine(lines[i], true));
             }
 
         }
@@ -45,31 +65,5 @@ public class SectionParser implements Parser {
         return "</div>\n";
     }
 
-    private String parseGeneralLine(String generalLine) {
-        // TEMPORARY: Just return the line in <p>s.
-        return String.format("<p>%s</p>\n", generalLine);
-    }
 
-    private int getStopPoint(String[] lines, int i, int numLines, char starter, char terminator) throws SyntaxException {
-        int stopPoint = -1;
-        int openCloseDeficit = 0;
-        for (int j = i; j < numLines; j++) {
-            if (lines[j].charAt(0) == starter) {
-                openCloseDeficit++;
-                System.out.println("Deficit++ for " + lines[j]);
-            }
-            else if (lines[j].charAt(0) == terminator) {
-                System.out.println("Deficit-- for " + lines[j]);
-                openCloseDeficit--;
-            }
-            if (lines[j].charAt(0) == terminator && openCloseDeficit == 0) {
-                stopPoint = j;
-                break;
-            }
-        }
-        if (stopPoint == -1) {
-            throw new SyntaxException("Matching close not found for section open.");
-        }
-        return stopPoint;
-    }
 }
