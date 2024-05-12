@@ -22,19 +22,31 @@ public class ListParser implements Parser {
             }
             // All cases.
             if (line.charAt(0) == '-') {
-                listHTML = listHTML.concat(String.format("<li>%s</li>\n", line.substring(1)));
+                listHTML = listHTML.concat(String.format("<li>%s</li>\n", new ParserUtilities().parseGeneralLine(line.substring(1), false)));
             }
         }
         return listHTML;
     }
 
-    private String processListStart(String listStartingTag) {
-        // TEMPORARY: Assume an unordered list.
-        return "<ul>\n";
+    private String processListStart(String listStartingTag) throws SyntaxException {
+        String listType = new ParserUtilities().regexExtractSingleString(listStartingTag, "^=start-(.*)-list");
+        if (listType.equals("ordered")) {
+            return "<ol>\n";
+        } else if (listType.equals("unordered")) {
+            return "<ul>\n";
+        } else {
+            throw new SyntaxException("Invalid ordering type.");
+        }
     }
 
-    private String processListEnd(String listEndingTag) {
-        // TEMPORARY: Assume an unordered list.
-        return "</ul>\n";
+    private String processListEnd(String listEndingTag) throws SyntaxException {
+        String listType = new ParserUtilities().regexExtractSingleString(listEndingTag, "^?end-(.*)-list");
+        if (listType.equals("ordered")) {
+            return "</ol>\n";
+        } else if (listType.equals("unordered")) {
+            return "</ul>\n";
+        } else {
+            throw new SyntaxException("Invalid ordering type.");
+        }
     }
 }

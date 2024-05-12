@@ -1,8 +1,12 @@
+import java.io.SyncFailedException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class ParserUtilities {
     private final char ESCAPE = '\\';
+    private final char SPECIAL_INLINE = '@';
     private Map<Character, String> controlSequenceMap;
 
     public ParserUtilities() {
@@ -24,6 +28,13 @@ public class ParserUtilities {
                 // Double escapes are just a \.
                 previousEscape = false;
                 parsedLine = parsedLine.concat(String.valueOf(ESCAPE));
+                continue;
+            }
+
+            if (generalLine.charAt(i) == SPECIAL_INLINE && !previousEscape) {
+                int stopIndex = getStopPointString(generalLine, i, generalLine.charAt(i));
+                parsedLine = parsedLine.concat(processSpecialInline(generalLine.substring(i + 1, stopIndex)));
+                i = stopIndex;
                 continue;
             }
             if (controlSequenceMap.containsKey(generalLine.charAt(i)) && !previousEscape) {
@@ -102,5 +113,30 @@ public class ParserUtilities {
             throw new SyntaxException("Matching close not found for section open.");
         }
         return stopPoint;
+    }
+
+    // Note: Use this function when the to-be-extracted string must be present.
+    public String regexExtractSingleString(String fromString, String regexToExtract) throws SyntaxException {
+        Matcher regexMatch = Pattern.compile(regexToExtract).matcher(fromString);
+        if (regexMatch.find()) {
+            return regexMatch.group(1);
+        } else {
+            throw new SyntaxException("Control sequence missing required element. Element: " + fromString + " Regex: " + regexToExtract);
+
+        }
+    }
+
+    // For now, special inlines are only links.
+    // Note that this method receives the special inline stripped of the surrounding @s.
+    private String processSpecialInline(String inlineString) throws SyntaxException {
+        System.out.println("Processing special inline:" + inlineString);
+        String commandType = new ParserUtilities().regexExtractSingleString(inlineString, "^(.*):.*\\{");
+        System.out.println("Command type: " + commandType);
+        if (commandType.equals("link")) {
+            String name = new ParserUtilities().regexExtractSingleString(inlineString, "^.*:(.*)\\{");
+            String url = new ParserUtilities().regexExtractSingleString(inlineString, "^.*:.*\\{(.*)\\}");
+            return String.format("<a href=%s>%s</a>", url, name);
+        }
+        return "";
     }
 }

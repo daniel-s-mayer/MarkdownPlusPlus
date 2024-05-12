@@ -27,9 +27,7 @@ public class BaseChunkParser implements Parser {
         int stopPoint = -1;
         int openCloseDeficit = 0;
         for (int j = i; j < numLines; j++) {
-            if (lines[i].length() < 1) {
-                throw new SyntaxException("Blank lines not permitted outside of a section.");
-            }
+            if (lines[j].length() < 1) {continue;}
             if (lines[j].charAt(0) == '+') {
                 openCloseDeficit++;
                 System.out.println("Deficit++ for " + lines[j]);

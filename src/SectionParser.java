@@ -56,13 +56,41 @@ public class SectionParser implements Parser {
         System.out.println("Ending chunk printout");
     }
 
-    private String parseSectionStart(String startLine) {
-        // TEMPORARY -- NEED PARSING.
-        return "<div>\n<hr>\n";
+    private String parseSectionStart(String startLine) throws SyntaxException {
+        ParserUtilities parserUtilities = new ParserUtilities();
+        String sectionName = parserUtilities.regexExtractSingleString(startLine, "^+.*:(.*)\\{").replaceAll("\"", "");
+        Map<String, String> sectionOptions = generateSectionOptions(startLine);
+        String optionsCSS = getOptionsCSS(sectionOptions);
+        return String.format("<div id=\"%s\" name=\"%s\" style=\"%s\">\n", sectionName, sectionName, optionsCSS);
+    }
+
+    private static String getOptionsCSS(Map<String, String> sectionOptions) {
+        String optionsCSS = "";
+        for (Map.Entry<String, String> optionsEntry : sectionOptions.entrySet()) {
+            optionsCSS = switch (optionsEntry.getKey()) {
+                case "background-color" -> optionsCSS.concat(String.format("background: %s;", optionsEntry.getValue()));
+                case "css-class" -> optionsCSS.concat(String.format("class: %s;", optionsEntry.getValue()));
+                default -> optionsCSS.concat(String.format("%s: %s;", optionsEntry.getKey(), optionsEntry.getValue()));
+            };
+        }
+        return optionsCSS;
     }
 
     private String sectionEnd() {
         return "</div>\n";
+    }
+
+    private Map<String, String> generateSectionOptions(String startLine) throws SyntaxException {
+        String optionsString = new ParserUtilities().regexExtractSingleString(startLine, "^+.*:.*\\{(.*)}");
+        String[] splitOptionsStrings = optionsString.split(";");
+        HashMap<String, String> optionValuePairs = new HashMap<>();
+        for (String singleSplit : splitOptionsStrings) {
+            if (singleSplit.contains(":")) {
+                String[] singleSplitParts = singleSplit.split(":");
+                optionValuePairs.put(singleSplitParts[0], singleSplitParts[1]);
+            }
+        }
+        return optionValuePairs;
     }
 
 

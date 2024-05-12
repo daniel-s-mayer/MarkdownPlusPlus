@@ -27,6 +27,7 @@ public class FileProcessingRoutine implements Runnable {
             fileWriter.close();
         } catch (SyntaxException se) {
             System.out.println("Error parsing file " + subjectFile.getFile().getName() + ". Error: " + se.getMessage());
+            se.printStackTrace();
         } catch (IOException ioe) {
             System.out.println("Fatal I/O exception while processing file.");
         }
@@ -54,7 +55,14 @@ public class FileProcessingRoutine implements Runnable {
     }
     private String generateHeadHTML(ParsedMDPP parsedMDPP) {
         // TEMPORARY: Don't do much of anything.
-        return "<head>\n</head>";
+        String headHTML = "";
+        // Process the title.
+        headHTML = headHTML.concat(String.format("<title>%s</title>\n", parsedMDPP.getPageTitle().replace("\"", "")));
+        // Process the CSS URLS
+        for (String cssURL : parsedMDPP.getCSSURLs()) {
+            headHTML = headHTML.concat(String.format("<link rel=\"stylesheet\" href=\"%s\">\n", cssURL.replace("\"", "")));
+        }
+        return String.format("<head>\n%s</head>\n", headHTML);
     }
 
     private String generateTitlebar(ParsedMDPP parsedMDPP) {
