@@ -18,6 +18,9 @@ public class SectionParser implements Parser {
                 chunkHTML = chunkHTML.concat("<br>\n");
                 continue;
             }
+            if (lines[i].charAt(0) == '%') {
+                continue; // Comment
+            }
             // Process a section within the current section.
             if (lines[i].charAt(0) == '+') {
                 int stopPoint = parserUtilities.getStopPoint(lines, i, numLines, '+', '>');
@@ -39,6 +42,48 @@ public class SectionParser implements Parser {
             else if (lines[i].charAt(0) == '#') {
                 chunkHTML = chunkHTML.concat(parserUtilities.parseHeaderLine(lines[i]));
             }
+            // Process a blockquote within the current section.
+            else if (lines[i].charAt(0) == '<') {
+                String blockQuoteChunk = "<blockquote>";
+               int stopPoint = i;
+               for (int j = i; j < numLines; j++) {
+
+                   if (lines[j].length() < 1 || lines[j].charAt(0) != '<') {
+                       stopPoint = j;
+                   } else {
+                       blockQuoteChunk = blockQuoteChunk.concat(lines[j].substring(1));
+                   }
+               }
+               blockQuoteChunk = blockQuoteChunk.concat("</blockquote>\n");
+               chunkHTML = chunkHTML.concat(blockQuoteChunk);
+               i = stopPoint;
+            }
+            // Process an image within the current section.
+            else if (lines[i].charAt(0) == ';') {
+                chunkHTML = chunkHTML.concat(processImage(lines[i]));
+            }
+            else if (lines[i].charAt(0) == ':') {
+                String width = parserUtilities.regexExtractSingleString(lines[i], "^:\\{(.*)}").replace("\"", "");
+                chunkHTML = chunkHTML.concat(String.format("<hr width=\"%s%%\">\n", width));
+            }
+            else if (lines[i].charAt(0) == '~') {
+                String htmlChunk = "";
+                int stopPoint = i;
+                for (int j = i + 1; j < numLines; j++) {
+                    System.out.println("Raw HTML on line: " + lines[j]);
+                    if (lines[j].length() < 1) {
+                        continue;
+                    } else if (lines[j].charAt(0) == '~') {
+
+                        stopPoint = j;
+                        break;
+                    } else {
+                        htmlChunk = htmlChunk.concat(lines[j].substring(0));
+                    }
+                }
+                chunkHTML = chunkHTML.concat(htmlChunk);
+                i = stopPoint;
+            }
             else {
                 chunkHTML = chunkHTML.concat(parserUtilities.parseGeneralLine(lines[i], true));
             }
@@ -58,13 +103,14 @@ public class SectionParser implements Parser {
 
     private String parseSectionStart(String startLine) throws SyntaxException {
         ParserUtilities parserUtilities = new ParserUtilities();
-        String sectionName = parserUtilities.regexExtractSingleString(startLine, "^+.*:(.*)\\{").replaceAll("\"", "");
-        Map<String, String> sectionOptions = generateSectionOptions(startLine);
-        String optionsCSS = getOptionsCSS(sectionOptions);
-        return String.format("<div id=\"%s\" name=\"%s\" style=\"%s\">\n", sectionName, sectionName, optionsCSS);
+        String sectionName = parserUtilities.regexExtractSingleString(startLine, "^\\+start-section:(.*?)\\{").replaceAll("\"", "");
+        String classFields = parserUtilities.regexExtractSingleString(startLine, "^.*?:.*?\\{.*?}\\{(.*)}");
+        Map<String, String> sectionOptions = parserUtilities.generateOptions(startLine);
+        String optionsCSS = getSectionOptionsCSS(sectionOptions);
+        return String.format("<div id=\"%s\" name=\"%s\" style=\"%s\" class=\"%s\">\n", sectionName, sectionName, optionsCSS, classFields);
     }
 
-    private static String getOptionsCSS(Map<String, String> sectionOptions) {
+    private String getSectionOptionsCSS(Map<String, String> sectionOptions) {
         String optionsCSS = "";
         for (Map.Entry<String, String> optionsEntry : sectionOptions.entrySet()) {
             optionsCSS = switch (optionsEntry.getKey()) {
@@ -76,21 +122,32 @@ public class SectionParser implements Parser {
         return optionsCSS;
     }
 
+    private String getImageOptionsCSS(Map<String, String> imageOptions) {
+        String optionsCSS = "";
+        for (Map.Entry<String, String> optionsEntry : imageOptions.entrySet()) {
+            optionsCSS = switch (optionsEntry.getKey()) {
+                case "float" -> optionsCSS.concat(String.format("float: %s;", optionsEntry.getValue()));
+                case "css-class" -> optionsCSS.concat(String.format("class: %s;", optionsEntry.getValue()));
+                default -> optionsCSS.concat(String.format("%s: %s;", optionsEntry.getKey(), optionsEntry.getValue()));
+            };
+        }
+        return optionsCSS;
+    }
+
     private String sectionEnd() {
         return "</div>\n";
     }
 
-    private Map<String, String> generateSectionOptions(String startLine) throws SyntaxException {
-        String optionsString = new ParserUtilities().regexExtractSingleString(startLine, "^+.*:.*\\{(.*)}");
-        String[] splitOptionsStrings = optionsString.split(";");
-        HashMap<String, String> optionValuePairs = new HashMap<>();
-        for (String singleSplit : splitOptionsStrings) {
-            if (singleSplit.contains(":")) {
-                String[] singleSplitParts = singleSplit.split(":");
-                optionValuePairs.put(singleSplitParts[0], singleSplitParts[1]);
-            }
-        }
-        return optionValuePairs;
+
+
+    private String processImage(String line) throws SyntaxException {
+        ParserUtilities parserUtilities = new ParserUtilities();
+        String altText = parserUtilities.regexExtractSingleString(line, "^;\\[(.*?)\\]").replace("\"", "");
+        String htmlID = parserUtilities.regexExtractSingleString(line, "^;\\[.*]\\[(.*?)\\]").replace("\"", "");
+        String url = parserUtilities.regexExtractSingleString(line, "^;\\[.*]\\[.*]\\[(.*?)\\]").replace("\"", "");
+        Map<String, String> imageOptions = parserUtilities.generateOptions(line);
+        String imageCSS = getImageOptionsCSS(imageOptions);
+        return String.format("<img src=\"%s\" alt=\"%s\" style=\"%s\" id=\"%s\">\n", url, altText, imageCSS, htmlID);
     }
 
 

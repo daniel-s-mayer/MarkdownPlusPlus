@@ -13,7 +13,7 @@ public class BaseControlSequenceHandler {
                 pmpp.setPageTitle(parserUtilities.regexExtractSingleString(line, "^&&:.*\\{(.*)}"));
                 break;
             case "css-link":
-                pmpp.addCSSURL(parserUtilities.regexExtractSingleString(line, "/^&&:.*{(.*)}/gm"));
+                pmpp.addCSSURL(parserUtilities.regexExtractSingleString(line, "^&&:.*\\{(.*)}"));
                 break;
             default:
                 throw new SyntaxException("Invalid base-level command.");

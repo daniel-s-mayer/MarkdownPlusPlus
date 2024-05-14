@@ -8,7 +8,17 @@ public class BaseChunkParser implements Parser {
         String chunkHTML = "";
         int numLines = lines.length;
         for (int i = 0; i < numLines; i++) {
-            // Process a section within the MD++.
+            if (lines[i].length() < 1) {
+                continue;
+            }
+            if (lines[i].charAt(0) == '%') {
+                continue;
+            }
+            if (lines[i].charAt(0) == ':') {
+                String width = new ParserUtilities().regexExtractSingleString(lines[i], "^:\\{(.*)}").replace("\"", "");
+                chunkHTML = chunkHTML.concat(String.format("<hr width=\"%s%%\">\n", width));
+                continue;
+            }
             if (lines[i].charAt(0) == '+') {
                 int stopPoint = getStopPoint(lines, i, numLines);
                 chunkHTML = chunkHTML.concat(new SectionParser().parseChunk(parsedMDPP, Arrays.copyOfRange(lines, i, stopPoint + 1)));
@@ -17,6 +27,7 @@ public class BaseChunkParser implements Parser {
                 new BaseControlSequenceHandler().parseLine(lines[i], parsedMDPP);
                 continue;
             } else {
+                System.out.println("Erroring line: " + lines[i]);
                 throw new SyntaxException("Invalid base-level control sequence.");
             }
         }
@@ -28,14 +39,17 @@ public class BaseChunkParser implements Parser {
         int openCloseDeficit = 0;
         for (int j = i; j < numLines; j++) {
             if (lines[j].length() < 1) {continue;}
+            else if (lines[j].charAt(0) == '%') {
+                continue; // It's a comment.
+            }
+
             if (lines[j].charAt(0) == '+') {
                 openCloseDeficit++;
-                System.out.println("Deficit++ for " + lines[j]);
             }
             else if (lines[j].charAt(0) == '>') {
-                System.out.println("Deficit-- for " + lines[j]);
                 openCloseDeficit--;
             }
+
             if (lines[j].charAt(0) == '>' && openCloseDeficit == 0) {
                 stopPoint = j;
                 break;
