@@ -1,4 +1,5 @@
 import java.io.File;
+import java.io.SyncFailedException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,11 +28,15 @@ public class DirectoryProcessingRoutine {
                 ;
             }
         }
-        System.out.println("All files converted successfully!");
+        System.out.println("All conversions complete!");
     }
-    public List<FileToConvert> recursiveTreeBuilder(File currentBase, String relativePath) {
+    public List<FileToConvert> recursiveTreeBuilder(File currentBase, String relativePath) throws SyntaxException {
         List<FileToConvert> filesToConvert = new ArrayList<>();
-        for (File file : currentBase.listFiles()) {
+        File[] baseList = currentBase.listFiles();
+        if (currentBase == null || baseList == null) {
+            throw new SyntaxException("Invalid file path.");
+        }
+        for (File file : baseList) {
             if (file.isDirectory()) {
                 filesToConvert.addAll(recursiveTreeBuilder(file, relativePath + file.getName() + "/"));
                 continue;

@@ -27,9 +27,10 @@ public class FileProcessingRoutine implements Runnable {
             fileWriter.close();
         } catch (SyntaxException se) {
             System.out.println("Error parsing file " + subjectFile.getFile().getName() + ". Error: " + se.getMessage());
-            se.printStackTrace();
+            return;
         } catch (IOException ioe) {
             System.out.println("Fatal I/O exception while processing file.");
+            return;
         }
     }
 

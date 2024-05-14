@@ -14,9 +14,9 @@ public class ParserUtilities {
         controlSequenceMap.put('`', "<code>%s</code>");
         controlSequenceMap.put('*', "<b>%s</b>");
         controlSequenceMap.put('_', "<i>%s</i>");
+        controlSequenceMap.put('^', "<small>%s</small>");
     }
     public String parseGeneralLine(String generalLine, boolean isBase) throws SyntaxException {
-        System.out.println("Got general line: " + generalLine);
         String parsedLine = "";
         boolean previousEscape = false;
         int numChars = generalLine.length();
@@ -26,7 +26,7 @@ public class ParserUtilities {
                 continue;
             } else if (generalLine.charAt(i) == ESCAPE && previousEscape) {
                 // Double escapes are just a \.
-                previousEscape = false;
+                previousEscape = true;
                 parsedLine = parsedLine.concat(String.valueOf(ESCAPE));
                 continue;
             }
@@ -43,16 +43,15 @@ public class ParserUtilities {
                 i = stopIndex;
                 continue;
             } else {
-                System.out.println("Concatenating character :" + generalLine.charAt(i));
                 parsedLine = parsedLine.concat(String.valueOf(generalLine.charAt(i)));
             }
             if (generalLine.charAt(i) != ESCAPE) {
                 previousEscape = false;
             }
 
+
         }
         // Wrap the formatted line in "<p>"s for return.
-        System.out.println("Produced line: " + parsedLine);
         if (isBase) {
             return String.format("<p>%s</p>", parsedLine);
         }
@@ -74,12 +73,13 @@ public class ParserUtilities {
         int stopPoint = -1;
         int openCloseDeficit = 0;
         for (int j = i; j < numLines; j++) {
+            if (lines[j].length() < 1) {
+                continue;
+            }
             if (lines[j].charAt(0) == starter) {
                 openCloseDeficit++;
-                System.out.println("Deficit++ for " + lines[j]);
             }
             else if (lines[j].charAt(0) == terminator) {
-                System.out.println("Deficit-- for " + lines[j]);
                 openCloseDeficit--;
             }
             if (lines[j].charAt(0) == terminator && openCloseDeficit == 0) {
@@ -98,10 +98,14 @@ public class ParserUtilities {
         boolean lastCharacterEscape = false;
         for (int j = i + 1; j < string.length(); j++) {
             if (string.charAt(j) == ESCAPE) {
-                lastCharacterEscape = true;
+                if (lastCharacterEscape) {
+                    lastCharacterEscape = false;
+                } else {
+                    lastCharacterEscape = true;
+                }
                 continue;
             }
-            if (string.charAt(j) == delimiter && !lastCharacterEscape) {
+            if (string.charAt(j) == delimiter && (!lastCharacterEscape)) {
                 stopPoint = j;
                 break;
             }
@@ -129,14 +133,39 @@ public class ParserUtilities {
     // For now, special inlines are only links.
     // Note that this method receives the special inline stripped of the surrounding @s.
     private String processSpecialInline(String inlineString) throws SyntaxException {
-        System.out.println("Processing special inline:" + inlineString);
-        String commandType = new ParserUtilities().regexExtractSingleString(inlineString, "^(.*):.*\\{");
-        System.out.println("Command type: " + commandType);
+        String commandType = new ParserUtilities().regexExtractSingleString(inlineString, "^(.*?)\\:");
         if (commandType.equals("link")) {
-            String name = new ParserUtilities().regexExtractSingleString(inlineString, "^.*:(.*)\\{");
-            String url = new ParserUtilities().regexExtractSingleString(inlineString, "^.*:.*\\{(.*)\\}");
-            return String.format("<a href=%s>%s</a>", url, name);
+            String name = new ParserUtilities().regexExtractSingleString(inlineString, "^link:(.*?)\\{");
+            String url = new ParserUtilities().regexExtractSingleString(inlineString, "^.*?:.*?\\{(.*?)}");
+            String classText = new ParserUtilities().regexExtractSingleString(inlineString, "^.*?:.*?\\{.*?}\\{(.*)}");
+            return String.format("<a href=\"%s\" class=\"%s\">%s</a>", url, classText, name);
+        }
+        if (commandType.equals("style")) {
+            String styleOptions = new ParserUtilities().regexExtractSingleString(inlineString, "^.*:\\{(.*)}").replace("\"", "");
+            String actualString = new ParserUtilities().regexExtractSingleString(inlineString, "^.*:\\{.*}\\[(.*)]").replace("\"", "");
+            return String.format("<span style=\"%s\">%s</span>", styleOptions, actualString);
         }
         return "";
+    }
+
+    private String getInlineOptionsCSS(Map<String, String> options) {
+        String optionsCSS = "";
+        for (Map.Entry<String, String> optionsEntry : options.entrySet()) {
+            optionsCSS.concat(String.format("%s: %s;", optionsEntry.getKey(), optionsEntry.getValue()));
+        }
+        return optionsCSS;
+    }
+
+    public Map<String, String> generateOptions(String startLine) throws SyntaxException {
+        String optionsString = new ParserUtilities().regexExtractSingleString(startLine, "^.*?:.*?\\{(.*?)}");
+        String[] splitOptionsStrings = optionsString.split(";");
+        HashMap<String, String> optionValuePairs = new HashMap<>();
+        for (String singleSplit : splitOptionsStrings) {
+            if (singleSplit.contains(":")) {
+                String[] singleSplitParts = singleSplit.split(":");
+                optionValuePairs.put(singleSplitParts[0], singleSplitParts[1]);
+            }
+        }
+        return optionValuePairs;
     }
 }
