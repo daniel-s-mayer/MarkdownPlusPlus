@@ -1,6 +1,6 @@
 # Markdown++ (or MD++)
 -----------
-Learn more about the MD++ language and this converter by reading the FAQs (will become a GitHub inter-section link), or jump right in with the Usage Instructions (will also become a GitHub link).
+Learn more about the MD++ language and this converter by reading the FAQs , or jump right in with the Usage Instructions at the bottom of the page.
 -----------
 
 ## The FAQs:
