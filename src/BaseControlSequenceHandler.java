@@ -7,7 +7,6 @@ public class BaseControlSequenceHandler {
         // Identify the command type
         ParserUtilities parserUtilities = new ParserUtilities();
         String commandType = parserUtilities.regexExtractSingleString(line, "^&&:(.*)\\{");
-        System.out.println("Command type: " + commandType);
         switch (commandType) {
             case "page-title":
                 pmpp.setPageTitle(parserUtilities.regexExtractSingleString(line, "^&&:.*\\{(.*)}"));

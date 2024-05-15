@@ -27,7 +27,7 @@ public class BaseChunkParser implements Parser {
                 new BaseControlSequenceHandler().parseLine(lines[i], parsedMDPP);
                 continue;
             } else {
-                System.out.println("Erroring line: " + lines[i]);
+                System.out.println("Error line in MD++ source: " + lines[i]);
                 throw new SyntaxException("Invalid base-level control sequence.");
             }
         }

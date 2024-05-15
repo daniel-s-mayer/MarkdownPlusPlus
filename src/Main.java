@@ -2,9 +2,6 @@ import java.io.File;
 public class Main {
 
     public static void main(String[] args) throws SyntaxException {
-        for (String arg : args) {
-            System.out.println("Argument: "  + arg);
-        }
         // Parse the command-line arguments.
         if (args.length < 1) {
             displayError("Not enough arguments. Run with -h for help.");

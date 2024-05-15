@@ -70,7 +70,6 @@ public class SectionParser implements Parser {
                 String htmlChunk = "";
                 int stopPoint = i;
                 for (int j = i + 1; j < numLines; j++) {
-                    System.out.println("Raw HTML on line: " + lines[j]);
                     if (lines[j].length() < 1) {
                         continue;
                     } else if (lines[j].charAt(0) == '~') {
@@ -93,13 +92,6 @@ public class SectionParser implements Parser {
         return chunkHTML;
     }
 
-    private void printChunk(String[] lines) {
-        System.out.println("Starting chunk printout");
-        for (String line : lines ) {
-            System.out.println(line);
-        }
-        System.out.println("Ending chunk printout");
-    }
 
     private String parseSectionStart(String startLine) throws SyntaxException {
         ParserUtilities parserUtilities = new ParserUtilities();
